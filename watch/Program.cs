@@ -20,7 +20,7 @@ namespace watch
             var cr = new ChallangeResource();
             var controller = new Controller(client);
 
-            var cts = new CancellationTokenSource();
+            var cts = new CancellationToken();
             Console.WriteLine($"PID: {Process.GetCurrentProcess().Id}");
             await controller.StartAsync<ChallangeResource>(cr,"app-gw",(type,crd,client)=>{
                 Console.WriteLine($"{type} Dns: {crd.Spec.DnsName} Key: {crd.Spec.Key}");
