@@ -6,7 +6,7 @@ using k8s;
 using k8s.Models;
 using Newtonsoft.Json;
 using watch.KubeController;
-using watch.Model.Challange;
+using watch.Model.Challange.Kubernetes;
 
 namespace watch
 {

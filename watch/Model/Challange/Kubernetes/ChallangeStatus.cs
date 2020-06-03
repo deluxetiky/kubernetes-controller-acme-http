@@ -1,7 +1,7 @@
 using System;
 using Newtonsoft.Json;
 
-namespace watch.Model.Challange
+namespace watch.Model.Challange.Kubernetes
 {
     public class ChallangeStatus
     {
@@ -12,6 +12,6 @@ namespace watch.Model.Challange
         public bool Processing { get; set; } = false;
 
         [JsonProperty("Reason")]
-        public String Reason { get; set; } = "";
+        public string Reason { get; set; } = "";
     }
 }

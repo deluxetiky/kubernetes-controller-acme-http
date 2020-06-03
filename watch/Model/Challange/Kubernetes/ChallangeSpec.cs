@@ -2,30 +2,30 @@ using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace watch.Model
+namespace watch.Model.Challange.Kubernetes
 {
     public class ChallangeSpec
     {
         [JsonProperty("authzURL")]
-        public String AuthenticationUrl { get; set; } = "";
+        public string AuthenticationUrl { get; set; } = "";
 
         [JsonProperty("dnsName")]
-        public String DnsName { get; set; } = "";
+        public string DnsName { get; set; } = "";
 
         [JsonProperty("issuerRef")]
         public JToken IssuerRef { get; set; } = new JObject();
 
         [JsonProperty("key")]
-        public String Key { get; set; } = "";
+        public string Key { get; set; } = "";
 
         [JsonProperty("solver")]
         public JToken Solver { get; set; } = new JObject();
 
         [JsonProperty("token")]
-        public String Token { get; set; } = "";
+        public string Token { get; set; } = "";
 
         [JsonProperty("type")]
-        public String Type { get; set; } = "";
+        public string Type { get; set; } = "";
 
         [JsonProperty("wildcard")]
         public bool Wildcard { get; set; } = false;
