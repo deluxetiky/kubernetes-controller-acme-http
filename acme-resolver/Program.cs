@@ -26,7 +26,6 @@ namespace acme_resolver
         public static int Main(string[] args)
         {
             Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Information()
                 .ReadFrom.Configuration(Configuration)
 				.Enrich.FromLogContext()
 				.WriteTo.Console()
@@ -51,11 +50,11 @@ namespace acme_resolver
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
-                .UseSerilog()
+                .UseSerilog(Log.Logger)
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder.UseStartup<Startup>();
-                })
+                })                
                 .ConfigureServices(services =>
                 {
                     var config = KubernetesClientConfiguration.BuildDefaultConfig();

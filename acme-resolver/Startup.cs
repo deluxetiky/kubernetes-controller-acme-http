@@ -1,8 +1,10 @@
+using System.Linq;
 using acme_resolver.Repository;
 using acme_resolver.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
@@ -31,8 +33,8 @@ namespace acme_resolver
             app.UseEndpoints(endpoints =>
             {
                 var repository = app.ApplicationServices.GetRequiredService<IChallengeTokenRepository>();               
-
-                endpoints.MapGet("/.well-known/acme-challenge/{token}",async context =>{
+                var configuration = app.ApplicationServices.GetRequiredService<IConfiguration>();
+                endpoints.MapGet(configuration["Acme:Challenge:Prefix"] + "/{token}",async context =>{
                     var token = context.Request.RouteValues["token"].ToString();
                     var acmeRequest = await repository.GetKeyByToken(token);
                     Log.Debug("Received challenge token {@token}",token);
