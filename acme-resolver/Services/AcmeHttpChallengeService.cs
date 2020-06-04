@@ -35,9 +35,19 @@ namespace acme_resolver.Services
         {
             _logger.Information($"Acme-Resolver activation service is starting...");
             stoppingToken.Register(() => _logger.Information("Acme-Resolver activation service is stopping"));
-            var controller = new Controller(_kubernetesClient);
             var ns = _configuration.GetValue<String>("Namespaces:ApplicationGw");
-            await controller.StartAsync<ChallangeResource>(ns, async (t, crd, client) => await ResourceHandler(t, crd, client), stoppingToken);
+            try
+            {
+                var controller = new Controller(_kubernetesClient);                
+                _logger.Information("Controller namespace is set to {@ns}",ns);
+                await controller.StartAsync<ChallangeResource>(ns, async (t, crd, client) => await ResourceHandler(t, crd, client), stoppingToken);
+            }
+            catch (System.Exception)
+            {
+
+                _logger.Error("Controller start error! Namespace: {@ns} KubernetesClient: {@client}", ns, _kubernetesClient);
+            }
+
         }
 
         private async Task ResourceHandler(WatchEventType type, ChallangeResource crd, IKubernetes client)
@@ -56,13 +66,13 @@ namespace acme_resolver.Services
                     await _tokenRepository.UpdateTokenAsync(crd.Spec);
                     break;
                 case WatchEventType.Error:
-                _logger.Error("Error on resource {@resouce}",crd.Spec);
+                    _logger.Error("Error on resource {@resouce}", crd.Spec);
                     await _tokenRepository.DeleteTokenAsyc(crd.Spec.Token);
-                    
+
                     break;
                 default:
-                    _logger.Warning("Unhandled watching event type {@type}",type);
-                break;
+                    _logger.Warning("Unhandled watching event type {@type}", type);
+                    break;
             }
         }
     }

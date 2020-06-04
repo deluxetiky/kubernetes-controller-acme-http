@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
 using System;
@@ -27,44 +28,53 @@ namespace watch.KubeController
         /// <param name="token">Cancellation Token</param>
         /// <typeparam name="A">Customresource Definition Object which inherits from V1CustomResourceDefinition</typeparam>
         /// <returns></returns>
-        public async Task StartAsync<CRD>(String ns, Action<WatchEventType, CRD, IKubernetes> handler,CancellationToken token,CRD cr=null) where CRD : V1CustomResourceDefinition
+        public async Task StartAsync<CRD>(String ns, Action<WatchEventType, CRD, IKubernetes> handler, CancellationToken token, CRD cr = null) where CRD : V1CustomResourceDefinition
         {
             if (token.IsCancellationRequested) return;
 
-            if(cr==null)
+            if (cr == null)
                 cr = (CRD)Activator.CreateInstance(typeof(CRD));
-
-            var customObjects = await _client.ListNamespacedCustomObjectWithHttpMessagesAsync(
-               group: cr.ApiGroup(),
-               version: cr.ApiGroupVersion(),
-               namespaceParameter: ns,
-               plural: cr.GetKubernetesTypeMetadata().PluralName,
-               watch: true,
-               cancellationToken: token
-           );
-            using (customObjects.Watch<CRD, object>((type, item) =>
-                    {
-                        _logger.Debug("Received resource. Watch Type: {@type} Item: {@item}",type,item);
-                        try
-                        {
-                            handler.Invoke(type, item, _client);
-                            _logger.Debug("Invocation completed.");
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.Error(ex,"Received resource could not be processed.");
-                        }
-                    }
-                )
-              )
+            _logger.Information("Checking kubernetes api versions.");
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            var versions = await _client.GetAPIVersionsWithHttpMessagesAsync(cancellationToken: cts.Token);
+            if (versions.Body.Versions.Any(a=> a.Contains("v1")))
             {
-                while (!token.IsCancellationRequested)
+                _logger.Information("Available api versions {@versions}", versions.Body.Versions);
+
+                var customObjects = await _client.ListNamespacedCustomObjectWithHttpMessagesAsync(
+                        group: cr.ApiGroup(),
+                        version: cr.ApiGroupVersion(),
+                        namespaceParameter: ns,
+                        plural: cr.GetKubernetesTypeMetadata().PluralName,
+                        watch: true,
+                        cancellationToken: token
+                    );
+                using (customObjects.Watch<CRD, object>((type, item) =>
+                        {
+                            _logger.Debug("Received resource. Watch Type: {@type} Item: {@item}", type, item);
+                            try
+                            {
+                                handler.Invoke(type, item, _client);
+                                _logger.Debug("Invocation completed.");
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.Error(ex, "Received resource could not be processed.");
+                            }
+                        }
+                    )
+                  )
                 {
-                    await Task.Delay(1500);
+                    while (!token.IsCancellationRequested)
+                    {
+                        await Task.Delay(1500);
+                    }
                 }
             }
-
-
+            else
+            {
+                _logger.Error("There is no compatible kubernetes api versions. Please check your kubernetes connection configuration.");
+            }
         }
     }
 }
