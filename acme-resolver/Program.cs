@@ -19,7 +19,7 @@ namespace acme_resolver
     {
         public static IConfiguration Configuration { get; } = new ConfigurationBuilder()
 		   .SetBasePath(Directory.GetCurrentDirectory())
-		   .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+		   .AddJsonFile("appsettings.production.json", optional: false, reloadOnChange: true)
 		   .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "production"}.json", optional: true)
 		   .AddEnvironmentVariables()
 		   .Build();
@@ -57,8 +57,13 @@ namespace acme_resolver
                 })                
                 .ConfigureServices(services =>
                 {
-                    var config = KubernetesClientConfiguration.BuildDefaultConfig();
-                    services.AddSingleton(config);
+                    KubernetesClientConfiguration kubeConfig=null;
+                    if( Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")=="production")
+                        kubeConfig = KubernetesClientConfiguration.InClusterConfig();
+                    else
+                        kubeConfig = KubernetesClientConfiguration.BuildDefaultConfig();
+
+                    services.AddSingleton(kubeConfig);
                     // Setup the http client
                     services.AddHttpClient("K8s")
                         .AddTypedClient<IKubernetes>((httpClient, serviceProvider) =>
@@ -67,7 +72,7 @@ namespace acme_resolver
                                 serviceProvider.GetRequiredService<KubernetesClientConfiguration>(),
                                 httpClient);
                         })
-                        .ConfigurePrimaryHttpMessageHandler(config.CreateDefaultHttpClientHandler)
+                        .ConfigurePrimaryHttpMessageHandler(kubeConfig.CreateDefaultHttpClientHandler)
                         .AddHttpMessageHandler(KubernetesClientConfiguration.CreateWatchHandler);
 
 
