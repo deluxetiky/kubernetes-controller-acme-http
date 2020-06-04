@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using k8s;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Serilog;
 using watch.KubeController;
@@ -15,16 +16,19 @@ namespace acme_resolver.Services
         private readonly ILogger _logger;
         private readonly IKubernetes _kubernetesClient;
         private readonly IChallengeTokenRepository _tokenRepository;
+        private readonly IConfiguration _configuration;
 
         public AcmeHttpChallengeService(
             IKubernetes kubernetesClient,
-            IChallengeTokenRepository tokenRepository
+            IChallengeTokenRepository tokenRepository,
+            IConfiguration configuration
             )
         {
             _logger = Log.ForContext<AcmeHttpChallengeService>();
             if (kubernetesClient is null) throw new ArgumentNullException(nameof(kubernetesClient));
             _kubernetesClient = kubernetesClient;
             _tokenRepository = tokenRepository;
+            _configuration = configuration;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -32,8 +36,8 @@ namespace acme_resolver.Services
             _logger.Information($"Acme-Resolver activation service is starting...");
             stoppingToken.Register(() => _logger.Information("Acme-Resolver activation service is stopping"));
             var controller = new Controller(_kubernetesClient);
-            //todo: move namespace to appsetting
-            await controller.StartAsync<ChallangeResource>("app-gw", async (t, crd, client) => await ResourceHandler(t, crd, client), stoppingToken);
+            var ns = _configuration.GetValue<String>("Namespaces:ApplicationGw");
+            await controller.StartAsync<ChallangeResource>(ns, async (t, crd, client) => await ResourceHandler(t, crd, client), stoppingToken);
         }
 
         private async Task ResourceHandler(WatchEventType type, ChallangeResource crd, IKubernetes client)

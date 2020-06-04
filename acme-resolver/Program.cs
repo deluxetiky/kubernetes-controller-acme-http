@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using acme_resolver.Services;
@@ -16,14 +17,20 @@ namespace acme_resolver
 {
     public class Program
     {
+        public static IConfiguration Configuration { get; } = new ConfigurationBuilder()
+		   .SetBasePath(Directory.GetCurrentDirectory())
+		   .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+		   .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "production"}.json", optional: true)
+		   .AddEnvironmentVariables()
+		   .Build();
         public static int Main(string[] args)
         {
             Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Debug()
-            .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
-            .Enrich.FromLogContext()
-            .WriteTo.Console()
-            .CreateLogger();
+                .MinimumLevel.Information()
+                .ReadFrom.Configuration(Configuration)
+				.Enrich.FromLogContext()
+				.WriteTo.Console()
+				.CreateLogger();
 
             try
             {
