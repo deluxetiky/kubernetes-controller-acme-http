@@ -25,6 +25,26 @@
             }
         },
         {
+            "name": "Acme Api",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build-acme",
+            // If you have changed target frameworks, make sure to update the program path.
+            "program": "${workspaceFolder}/acme-resolver/bin/Debug/netcoreapp3.1/acme-resolver.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/acme-resolver",
+            // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
+            "console": "internalConsole",
+            "stopAtEntry": false,
+            "logging": {
+                "browserStdOut": false,
+                "moduleLoad": false,
+                "engineLogging": false,
+                "threadExit": false,
+                "processExit": false
+            }
+        },
+        {
             "name": ".NET Core Attach",
             "type": "coreclr",
             "request": "attach",
