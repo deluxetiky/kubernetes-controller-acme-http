@@ -16,11 +16,13 @@ namespace acme_resolver.Services
         private readonly ILogger _logger;
         private readonly IKubernetes _kubernetesClient;
         private readonly IChallengeTokenRepository _tokenRepository;
+        private readonly IHostApplicationLifetime _lifetime;
         private readonly IConfiguration _configuration;
 
         public AcmeHttpChallengeService(
             IKubernetes kubernetesClient,
             IChallengeTokenRepository tokenRepository,
+            IHostApplicationLifetime lifetime,
             IConfiguration configuration
             )
         {
@@ -28,6 +30,7 @@ namespace acme_resolver.Services
             if (kubernetesClient is null) throw new ArgumentNullException(nameof(kubernetesClient));
             _kubernetesClient = kubernetesClient;
             _tokenRepository = tokenRepository;
+            _lifetime = lifetime;
             _configuration = configuration;
         }
 
@@ -38,14 +41,15 @@ namespace acme_resolver.Services
             var ns = _configuration.GetValue<String>("Namespaces:ApplicationGw");
             try
             {
-                var controller = new Controller(_kubernetesClient);                
+                var controller = new Controller(_kubernetesClient);
                 _logger.Information("Controller namespace is set to {@ns}",ns);
                 await controller.StartAsync<ChallangeResource>(ns, async (t, crd, client) => await ResourceHandler(t, crd, client), stoppingToken);
             }
-            catch (System.Exception)
+            catch (System.Exception ex)
             {
-
-                _logger.Error("Controller start error! Namespace: {@ns} KubernetesClient: {@client}", ns, _kubernetesClient);
+                await Task.Delay(100);
+                _logger.Error(ex,"Kubernetes Controller start error! Namespace: {@ns} KubernetesClient: {@url}", ns, _kubernetesClient.BaseUri);
+                _lifetime.StopApplication();
             }
 
         }
