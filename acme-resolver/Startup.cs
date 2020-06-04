@@ -36,7 +36,7 @@ namespace acme_resolver
                     var token = context.Request.RouteValues["token"].ToString();
                     var acmeRequest = await repository.GetKeyByToken(token);
                     Log.Debug("Received challenge token {@token}",token);
-                    await context.Response.WriteAsync(acmeRequest.Key);
+                    await context.Response.WriteAsync(acmeRequest?.Key??"");
                 });
 
                  endpoints.MapGet("/", async context =>

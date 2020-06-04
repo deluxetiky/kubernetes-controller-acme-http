@@ -27,9 +27,12 @@ namespace watch.KubeController
         /// <param name="token">Cancellation Token</param>
         /// <typeparam name="A">Customresource Definition Object which inherits from V1CustomResourceDefinition</typeparam>
         /// <returns></returns>
-        public async Task StartAsync<CRD>(CRD cr, String ns, Action<WatchEventType, CRD, IKubernetes> handler, CancellationToken token) where CRD : V1CustomResourceDefinition
+        public async Task StartAsync<CRD>(String ns, Action<WatchEventType, CRD, IKubernetes> handler,CancellationToken token,CRD cr=null) where CRD : V1CustomResourceDefinition
         {
             if (token.IsCancellationRequested) return;
+
+            if(cr==null)
+                cr = (CRD)Activator.CreateInstance(typeof(CRD));
 
             var customObjects = await _client.ListNamespacedCustomObjectWithHttpMessagesAsync(
                group: cr.ApiGroup(),
