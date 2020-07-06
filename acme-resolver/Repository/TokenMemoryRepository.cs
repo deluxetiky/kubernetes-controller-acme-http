@@ -25,6 +25,8 @@ namespace acme_resolver.Repository
             return Task.CompletedTask;
         }
 
+      
+
         public Task<ChallangeSpec> GetKeyByToken(string token)
         {
             return Task.FromResult(tokens.FirstOrDefault(a=> a.Token==token));
@@ -33,14 +35,21 @@ namespace acme_resolver.Repository
         public Task RegisterTokenAsync(ChallangeSpec entity)
         {
             _logger.Debug("Token {@token} is registering to repository",entity);
-            tokens.Add(entity);
-            return Task.CompletedTask;
+            return UpsertToken(entity);
         }
 
         public Task UpdateTokenAsync(ChallangeSpec entity)
         {
-            tokens = tokens.Where(a=>a.Token!=entity.Token).ToList();
-            tokens.Add(entity);
+            return UpsertToken(entity);
+        }
+
+        private Task UpsertToken(ChallangeSpec entity)
+        {
+            if (tokens.Any(a=>a.Token==entity.Token))
+            { //Key has changed
+                tokens = tokens.Where(a => a.Token != entity.Token).ToList();//Filter out token
+            }
+            tokens.Add(entity); // Add new values
             return Task.CompletedTask;
         }
     }
