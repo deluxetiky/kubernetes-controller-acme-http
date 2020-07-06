@@ -43,39 +43,44 @@ namespace watch.KubeController
 
                 try
                 {
-                   
-                    
-                    
-                    var customObjects = await _client.ListNamespacedCustomObjectWithHttpMessagesAsync(
-                        group: cr.ApiGroup(),
-                        version: cr.ApiGroupVersion(),
-                        namespaceParameter: ns,
-                        plural: cr.GetKubernetesTypeMetadata().PluralName,
-                        watch: true,
-                        timeoutSeconds:20,
-                        cancellationToken: token
-                    );
-                    using (customObjects.Watch<CRD, object>((type, item) =>
-                            {
-                                _logger.Debug("Received resource. Watch Type: {@type} Item: {@item}", type, item);
-                                try
-                                {
-                                    handler.Invoke(type, item, _client);
-                                    _logger.Debug("Invocation completed.");
-                                }
-                                catch (Exception ex)
-                                {
-                                    _logger.Error(ex, "Received resource could not be processed.");
-                                }
-                            },
-                            exception => { _logger.Error(exception, "CRD Watch error"); },
-                            () => { _logger.Warning("Kubernetes api closed  the connection"); }
-                        )
-                    )
+                    while (!token.IsCancellationRequested)
                     {
-                        while (!token.IsCancellationRequested)
+                        var ctrlc = new ManualResetEventSlim(false);
+                        var customObjects = await _client.ListNamespacedCustomObjectWithHttpMessagesAsync(
+                            group: cr.ApiGroup(),
+                            version: cr.ApiGroupVersion(),
+                            namespaceParameter: ns,
+                            plural: cr.GetKubernetesTypeMetadata().PluralName,
+                            watch: true,
+                            timeoutSeconds:20,
+                            cancellationToken: token
+                        );
+                    
+                        using (customObjects.Watch<CRD, object>((type, item) =>
+                                {
+                                    _logger.Debug("Received resource. Watch Type: {@type} Item: {@item}", type, item);
+                                    try
+                                    {
+                                        handler.Invoke(type, item, _client);
+                                        _logger.Debug("Crd registered to get activated.");
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        _logger.Error(ex, "Received resource could not be processed.");
+                                    }
+                                },
+                                exception => { _logger.Error(exception, "CRD Watch error"); },
+                                () =>
+                                {
+                                    _logger.Warning("Kubernetes api closed  the connection");
+                                    ctrlc.Set();
+                                }
+                            )
+                        )
                         {
-                            await Task.Delay(3000, token);
+                           
+                            Console.CancelKeyPress += (sender, eventArgs) => ctrlc.Set();
+                            ctrlc.Wait(token);
                         }
                     }
                 }
