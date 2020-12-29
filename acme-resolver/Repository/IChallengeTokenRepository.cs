@@ -1,9 +1,7 @@
-using System;
 using System.Threading.Tasks;
-using watch.Model.Challange;
 using watch.Model.Challange.Kubernetes;
 
-namespace acme_resolver.Services
+namespace acme_resolver.Repository
 {
     public interface IChallengeTokenRepository
     {

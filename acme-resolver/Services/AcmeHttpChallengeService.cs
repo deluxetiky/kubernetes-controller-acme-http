@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using acme_resolver.Repository;
 using k8s;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -8,6 +10,7 @@ using Serilog;
 using watch.KubeController;
 using watch.Model.Challange;
 using watch.Model.Challange.Kubernetes;
+using static System.Threading.Tasks.Task;
 
 namespace acme_resolver.Services
 {
@@ -27,8 +30,7 @@ namespace acme_resolver.Services
         )
         {
             _logger = Log.ForContext<AcmeHttpChallengeService>();
-            if (kubernetesClient is null) throw new ArgumentNullException(nameof(kubernetesClient));
-            _kubernetesClient = kubernetesClient;
+            _kubernetesClient = kubernetesClient ?? throw new ArgumentNullException(nameof(kubernetesClient));
             _tokenRepository = tokenRepository;
             _lifetime = lifetime;
             _configuration = configuration;
@@ -38,18 +40,27 @@ namespace acme_resolver.Services
         {
             _logger.Information($"Acme-Resolver activation service is starting...");
             stoppingToken.Register(() => _logger.Information("Acme-Resolver activation service is stopping"));
-            var ns = _configuration.GetValue<String>("Namespaces:ApplicationGw");
+            var namespaces = _configuration.GetSection("Namespaces").Get<string[]>();
             try
             {
                 var controller = new Controller(_kubernetesClient);
-                _logger.Information("Controller namespace is set to {@ns}", ns);
-                await controller.StartAsync<ChallangeResource>(ns, async (t, crd, client) =>
-                    await ResourceHandler(t, crd, client), stoppingToken);
+                var tasks = new List<Task>();
+                foreach (var ns in namespaces)
+                {
+                    _logger.Information("Controller namespace {@ns} is starting up...", ns);
+                    tasks.Add(Run(async () =>
+                    {
+                        await controller.StartAsync<ChallangeResource>(ns, async (t, crd, client) =>
+                            await ResourceHandler(t, crd, client), stoppingToken);
+                    }, stoppingToken));
+                }
+                await WhenAll(tasks.ToArray());
+
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                await Task.Delay(100);
-                _logger.Error(ex, "Kubernetes Controller start error! Namespace: {@ns} KubernetesClient: {@url}", ns,
+                await Delay(100);
+                _logger.Error(ex, "Kubernetes Controller start error! Namespace: {@ns} KubernetesClient: {@url}", string.Join(",",namespaces),
                     _kubernetesClient.BaseUri);
                 _lifetime.StopApplication();
             }
