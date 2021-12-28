@@ -12,14 +12,8 @@ namespace watch.Model.Challange.Kubernetes
         [JsonProperty("dnsName")]
         public string DnsName { get; set; } = "";
 
-        [JsonProperty("issuerRef")]
-        public JToken IssuerRef { get; set; } = new JObject();
-
         [JsonProperty("key")]
         public string Key { get; set; } = "";
-
-        [JsonProperty("solver")]
-        public JToken Solver { get; set; } = new JObject();
 
         [JsonProperty("token")]
         public string Token { get; set; } = "";

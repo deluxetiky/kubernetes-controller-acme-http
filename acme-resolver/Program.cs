@@ -66,15 +66,10 @@ namespace acme_resolver
                     services.AddSingleton(kubeConfig);
                     // Setup the http client
                     services.AddHttpClient("K8s")
-                        .AddTypedClient<IKubernetes>((httpClient, serviceProvider) =>
-                        {
-                            return new Kubernetes(
-                                serviceProvider.GetRequiredService<KubernetesClientConfiguration>(),
-                                httpClient);
-                        })
-                        .ConfigurePrimaryHttpMessageHandler(kubeConfig.CreateDefaultHttpClientHandler)
-                        .AddHttpMessageHandler(KubernetesClientConfiguration.CreateWatchHandler);
-
+                        .AddTypedClient<IKubernetes>((httpClient, serviceProvider) => new Kubernetes(
+                            serviceProvider.GetRequiredService<KubernetesClientConfiguration>(),
+                            httpClient))
+                        .ConfigurePrimaryHttpMessageHandler(kubeConfig.CreateDefaultHttpClientHandler);
 
                     // Controller Watching service
                     services.AddHostedService<AcmeHttpChallengeService>();

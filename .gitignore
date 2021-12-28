@@ -361,3 +361,7 @@ MigrationBackup/
 FodyWeavers.xsd
 
 .idea/.idea.KubeAccess/.idea/
+
+.vscode/
+
+.idea/

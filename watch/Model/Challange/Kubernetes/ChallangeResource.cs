@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 
 namespace watch.Model.Challange.Kubernetes
 {
-    [KubernetesEntity(Group = "apiextensions.k8s.io", Kind = "CustomResourceDefinition", ApiVersion = "acme.cert-manager.io/v1alpha2", PluralName = "challenges")]
+    [KubernetesEntity(Group = "apiextensions.k8s.io", Kind = "CustomResourceDefinition", ApiVersion = "acme.cert-manager.io/v1", PluralName = "challenges")]
     public class ChallangeResource : V1CustomResourceDefinition, ISpec<ChallangeSpec>
     {
         public ChallangeResource() : base()

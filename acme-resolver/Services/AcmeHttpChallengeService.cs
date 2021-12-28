@@ -14,7 +14,7 @@ using static System.Threading.Tasks.Task;
 
 namespace acme_resolver.Services
 {
-    public class AcmeHttpChallengeService : BackgroundService, IHostedService, IDisposable
+    public class AcmeHttpChallengeService : BackgroundService
     {
         private readonly ILogger _logger;
         private readonly IKubernetes _kubernetesClient;
