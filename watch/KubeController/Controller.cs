@@ -26,42 +26,42 @@ namespace watch.KubeController
         /// <param name="ns">Namespace</param>
         /// <param name="handler">Handler</param>
         /// <param name="token">Cancellation Token</param>
-        /// <typeparam name="CRD">Customresource Definition Object which inherits from V1CustomResourceDefinition</typeparam>
+        /// <typeparam name="T">Customresource Definition Object which inherits from V1CustomResourceDefinition</typeparam>
         /// <returns></returns>
-        public async Task StartAsync<CRD>(String ns, Action<WatchEventType, CRD, IKubernetes> handler,
-            CancellationToken token, CRD cr = null) where CRD : V1CustomResourceDefinition
+        public async Task StartAsync<T>(String ns, Func<WatchEventType, T, IKubernetes,Task> handler,
+            CancellationToken token, T cr = null) where T : V1CustomResourceDefinition
         {
             if (token.IsCancellationRequested) return;
 
             if (cr == null)
-                cr = (CRD) Activator.CreateInstance(typeof(CRD));
+                cr = (T) Activator.CreateInstance(typeof(T));
             _logger.Information("Checking kubernetes api versions.");
-            var versions = await _client.GetAPIVersionsWithHttpMessagesAsync(cancellationToken: token);
-            if (versions.Body.Versions.Any(a => a.Contains("v1")))
+            
+            var versions = await _client.CoreV1.GetAPIResourcesWithHttpMessagesAsync(cancellationToken:token);
+            if (versions.Body.GroupVersion.Contains("v1"))
             {
-                _logger.Information("Available api versions {@versions}", versions.Body.Versions);
+                _logger.Information("Available api versions {@versions}", versions.Body.GroupVersion);
 
                 try
                 {
                     while (!token.IsCancellationRequested)
                     {
                         var ctrlc = new ManualResetEventSlim(false);
-                        var customObjects = await _client.ListNamespacedCustomObjectWithHttpMessagesAsync(
+                        var customObjects = await _client.CustomObjects.ListNamespacedCustomObjectWithHttpMessagesAsync(
                             group: cr.ApiGroup(),
                             version: cr.ApiGroupVersion(),
                             namespaceParameter: ns,
                             plural: cr.GetKubernetesTypeMetadata().PluralName,
                             watch: true,
-                            timeoutSeconds:20,
                             cancellationToken: token
                         );
                     
-                        using (customObjects.Watch<CRD, object>((type, item) =>
+                        using (customObjects.Watch<T, object>( (type, item) =>
                                 {
                                     _logger.Debug("Received resource. Watch Type: {@type} Item: {@item}", type, item);
                                     try
                                     {
-                                        handler.Invoke(type, item, _client);
+                                        handler.Invoke(type, item, _client).GetAwaiter().GetResult();
                                         _logger.Debug("Crd registered to get activated.");
                                     }
                                     catch (Exception ex)

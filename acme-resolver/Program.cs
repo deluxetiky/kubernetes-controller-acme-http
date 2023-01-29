@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using acme_resolver.Services;
 using k8s;
@@ -61,15 +62,12 @@ namespace acme_resolver
                     if( Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")=="production")
                         kubeConfig = KubernetesClientConfiguration.InClusterConfig();
                     else
-                        kubeConfig = KubernetesClientConfiguration.BuildDefaultConfig();
+                        kubeConfig = KubernetesClientConfiguration.BuildConfigFromConfigFile(Environment.GetEnvironmentVariable("KUBECONFIG"));
 
                     services.AddSingleton(kubeConfig);
                     // Setup the http client
                     services.AddHttpClient("K8s")
-                        .AddTypedClient<IKubernetes>((httpClient, serviceProvider) => new Kubernetes(
-                            serviceProvider.GetRequiredService<KubernetesClientConfiguration>(),
-                            httpClient))
-                        .ConfigurePrimaryHttpMessageHandler(kubeConfig.CreateDefaultHttpClientHandler);
+                        .AddTypedClient<IKubernetes>((httpClient, serviceProvider) => new Kubernetes(kubeConfig));
 
                     // Controller Watching service
                     services.AddHostedService<AcmeHttpChallengeService>();

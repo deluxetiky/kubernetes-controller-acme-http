@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using acme_resolver.Repository;
 using k8s;
+using k8s.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Serilog;
@@ -45,30 +46,31 @@ namespace acme_resolver.Services
             {
                 var controller = new Controller(_kubernetesClient);
                 var tasks = new List<Task>();
-                foreach (var ns in namespaces)
-                {
-                    _logger.Information("Controller namespace {@ns} is starting up...", ns);
-                    tasks.Add(Run(async () =>
+                if (namespaces != null)
+                    foreach (var ns in namespaces)
                     {
-                        await controller.StartAsync<ChallangeResource>(ns, async (t, crd, client) =>
-                            await ResourceHandler(t, crd, client), stoppingToken);
-                    }, stoppingToken));
-                }
+                        _logger.Information("Controller namespace {@ns} is starting up...", ns);
+                        var listenTask = controller.StartAsync<ChallangeResource>(ns, ResourceHandler, stoppingToken);
+                        tasks.Add(listenTask);
+                    }
+
                 await WhenAll(tasks.ToArray());
 
             }
             catch (Exception ex)
             {
-                await Delay(100);
-                _logger.Error(ex, "Kubernetes Controller start error! Namespace: {@ns} KubernetesClient: {@url}", string.Join(",",namespaces),
-                    _kubernetesClient.BaseUri);
+                await Delay(100, stoppingToken);
+                if (namespaces != null)
+                    _logger.Error(ex, "Kubernetes Controller start error! Namespace: {@ns} KubernetesClient: {@url}",
+                        string.Join(",", namespaces),
+                        _kubernetesClient.BaseUri);
                 _lifetime.StopApplication();
             }
         }
 
         private async Task ResourceHandler(WatchEventType type, ChallangeResource crd, IKubernetes client)
         {
-            _logger.Information($"{type} Dns: {crd.Spec.DnsName} Key: {crd.Spec.Key}");
+            _logger.Information($"{type} Dns: {crd.Spec.DnsName} Key: {crd.Spec.Key} in {crd.Namespace()}");
 
             switch (type)
             {

@@ -6,9 +6,6 @@ namespace watch.Model.Challange.Kubernetes
 {
     public class ChallangeSpec
     {
-        [JsonProperty("authzURL")]
-        public string AuthenticationUrl { get; set; } = "";
-
         [JsonProperty("dnsName")]
         public string DnsName { get; set; } = "";
 
@@ -17,12 +14,6 @@ namespace watch.Model.Challange.Kubernetes
 
         [JsonProperty("token")]
         public string Token { get; set; } = "";
-
-        [JsonProperty("type")]
-        public string Type { get; set; } = "";
-
-        [JsonProperty("wildcard")]
-        public bool Wildcard { get; set; } = false;
 
     }
 }
